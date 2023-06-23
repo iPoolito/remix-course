@@ -10,10 +10,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Note {
-  id        Int      @id @default(autoincrement())
-  name      String
-  content   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Restaurant {
+  id               Int            @id @default(autoincrement())
+  name             String
+  raiting          Int
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  foods            Food[]
+  type             RestaurantType @relation(fields: [restaurantTypeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  restaurantTypeId Int
+}
+
+model Food {
+  id           Int         @id @default(autoincrement())
+  name         String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  Restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  restaurantId Int?
+}
+
+model RestaurantType {
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  Restaurant Restaurant[]
 }
