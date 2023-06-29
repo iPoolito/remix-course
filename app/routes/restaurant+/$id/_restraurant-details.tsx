@@ -1,8 +1,14 @@
 import * as React from 'react';
 import { StarIcon as StarIconOutline } from '@heroicons/react/24/outline';
-import { json, type DataFunctionArgs, defer } from '@remix-run/node';
-import { Await, useLoaderData, useRouteError } from '@remix-run/react';
-import { Form, Link } from 'react-router-dom';
+import { type DataFunctionArgs, defer } from '@remix-run/node';
+import {
+    Await,
+    useFetcher,
+    useLoaderData,
+    useRouteError,
+    useSubmit,
+} from '@remix-run/react';
+import { Link } from 'react-router-dom';
 import { ZodError, z } from 'zod';
 import {
     getChefsRecommendation,
@@ -26,7 +32,15 @@ export async function loader({ params }: DataFunctionArgs) {
     // create fake promise that takes 3 seconds to resolve
     const chefsRecommendation = getChefsRecommendation();
 
-    return defer({ restaurant, chefsRecommendation });
+    return defer(
+        { restaurant, chefsRecommendation },
+        {
+            headers: {
+                'Cache-Control':
+                    'public, max-age=3600, s-maxage=3600 stale-while-revalidate',
+            },
+        }
+    );
 }
 
 export async function action({ request, params }: DataFunctionArgs) {
@@ -62,8 +76,10 @@ export async function action({ request, params }: DataFunctionArgs) {
         restaurantId: Number(restaurantId),
     });
 
-    await updateRestaurantRating(ratingPayload);
-    await createComment(commentPayload);
+    await Promise.all([
+        await updateRestaurantRating(ratingPayload),
+        await createComment(commentPayload),
+    ]);
 
     return null;
 }
@@ -82,6 +98,24 @@ export default function RestaurantDetails() {
         setRating(star + 1);
         setHoveredStar(star);
     }
+
+    const formRef = React.useRef<HTMLFormElement>(null);
+
+    const fetcher = useFetcher();
+    const isSubmitting = fetcher.state === 'submitting';
+
+    React.useEffect(() => {
+        if (!isSubmitting) {
+            formRef.current?.reset();
+        }
+    }, [isSubmitting]);
+
+    const optimisticComment = {
+        id: 'fake-id',
+        creator: fetcher.formData?.get('creator'),
+        text: fetcher.formData?.get('comment'),
+        createdAt: new Date().toISOString(),
+    };
 
     return (
         <main className='mx-auto py-20 max-w-7xl sm:px-6 lg:px-8'>
@@ -136,12 +170,30 @@ export default function RestaurantDetails() {
                             <p>{comment.text}</p>
                         </li>
                     ))}
+                    {(isSubmitting || fetcher.state === 'loading') &&
+                        Object.values(optimisticComment).every(Boolean) && (
+                            <li key={optimisticComment.id}>
+                                <span className='flex items-center'>
+                                    <p className='font-medium'>
+                                        {optimisticComment.creator as string}
+                                    </p>{' '}
+                                    <time className='text-sm ml-2'>
+                                        ({formatRelativeTime(optimisticComment.createdAt)})
+                                    </time>
+                                </span>
+                                <p>{optimisticComment.text as string}</p>
+                            </li>
+                        )}
                 </ul>
             </section>
 
             <section className='mt-20'>
                 <h2 className='text-2xl font-medium'>Agrega tu comentario</h2>
-                <Form method='post' className='space-y-4 mt-4 flex flex-col'>
+                <fetcher.Form
+                    ref={formRef}
+                    method='post'
+                    className='space-y-4 mt-4 flex flex-col'
+                >
                     <div>
                         <label
                             htmlFor='creator'
@@ -177,6 +229,7 @@ export default function RestaurantDetails() {
                     </div>
                     <div>
                         <p>Rating</p>
+
                         <div className='flex'>
                             {Array.from(Array(maxRating).keys()).map((_, i) => (
                                 <StarIconOutline
@@ -189,19 +242,20 @@ export default function RestaurantDetails() {
                                     onMouseEnter={() => setHoveredStar(i)}
                                 />
                             ))}
+                            L
                         </div>
                         {rating ? (
                             <input name='rating' type='hidden' value={rating} readOnly />
                         ) : null}
                     </div>
                     <button
-                        disabled={rating === 0}
+                        disabled={rating === 0 || isSubmitting}
                         type='submit'
                         className='w-fit disabled:opacity-50 self-end rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
                     >
-                        Agregar comentario
+                        {isSubmitting ? 'Agregando comentario...' : 'Agregar comentario'}
                     </button>
-                </Form>
+                </fetcher.Form>
             </section>
         </main>
     );

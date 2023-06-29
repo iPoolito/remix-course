@@ -82,7 +82,7 @@ export function getRestaurantById(id: RestaurantType['id']) {
                     createdAt: true,
                 },
                 orderBy: {
-                    createdAt: 'desc',
+                    createdAt: 'asc',
                 },
             },
             foods: {
