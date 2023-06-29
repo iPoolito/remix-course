@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,49 +8,59 @@ datasource db {
 }
 
 model Restaurant {
-  id       Int    @id @default(autoincrement())
-  name     String
-  rating   Int    @default(0)
-  visitors Int    @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  foods            Food[]
-  type             RestaurantType @relation(fields: [restaurantTypeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id               Int            @id @default(autoincrement())
+  name             String
+  rating           Int            @default(0)
+  visitors         Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   restaurantTypeId Int
   comments         Comment[]
+  foods            Food[]
+  type             RestaurantType @relation(fields: [restaurantTypeId], references: [id], onDelete: Cascade)
 }
 
 model Food {
-  id   Int    @id @default(autoincrement())
-  name String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id           Int        @id @default(autoincrement())
+  name         String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   restaurantId Int
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 }
 
 model RestaurantType {
-  id   Int    @id @default(autoincrement())
-  name String @unique
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
   restaurant Restaurant[]
 }
 
 model Comment {
-  id      Int    @id @default(autoincrement())
-  text    String
-  creator String
+  id           Int         @id @default(autoincrement())
+  text         String
+  creator      String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  restaurantId Int?
+  Restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
 
+model User {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  passwordHash PasswordHash?
+}
+
+model PasswordHash {
+  id        Int      @id @default(autoincrement())
+  hash      String
+  userId    Int      @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  Restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  restaurantId Int?
+  user      User     @relation(fields: [userId], references: [id])
 }
