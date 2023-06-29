@@ -1,9 +1,5 @@
 import { cssBundleHref } from '@remix-run/css-bundle';
-import {
-  json,
-  type DataFunctionArgs,
-  type LinksFunction,
-} from '@remix-run/node';
+import { type LinksFunction, type LoaderFunction } from '@remix-run/node';
 import {
   Links,
   LiveReload,
@@ -13,19 +9,19 @@ import {
   ScrollRestoration,
 } from '@remix-run/react';
 import stylesheet from '~/tailwind.css';
-import { authenticator } from './services/auth.server';
+
+import { rootAuthLoader } from '@clerk/remix/ssr.server';
+
+import { ClerkApp, ClerkCatchBoundary } from '@clerk/remix';
 
 export const links: LinksFunction = () => [
   { rel: 'stylesheet', href: stylesheet },
   ...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : []),
 ];
 
-export async function loader({ request }: DataFunctionArgs) {
-  const user = await authenticator.isAuthenticated(request);
-  return json({ user });
-}
+export const loader: LoaderFunction = (args) => rootAuthLoader(args);
 
-export default function App() {
+function App() {
   return (
     <html lang='en' className='h-full'>
       <head>
@@ -43,3 +39,7 @@ export default function App() {
     </html>
   );
 }
+
+export default ClerkApp(App);
+
+export const CatchBoundary = ClerkCatchBoundary();

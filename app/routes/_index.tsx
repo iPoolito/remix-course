@@ -1,9 +1,9 @@
+import { SignOutButton, SignedIn, UserButton } from '@clerk/remix';
 import {
   json,
   type DataFunctionArgs,
   type V2_MetaFunction,
 } from '@remix-run/node';
-import { Form } from '@remix-run/react';
 import { z } from 'zod';
 import { RestaurantHeader } from '~/components/RestaurantHeader';
 import { RestaurantTable } from '~/components/RestaurantTable';
@@ -26,7 +26,15 @@ export async function loader({ request }: DataFunctionArgs) {
     getRestaurants(order),
   ]);
 
-  return json({ restaurantTypes, restaurants });
+  return json(
+    { restaurantTypes, restaurants }
+    // {
+    //   headers: {
+    //     'Cache-Control':
+    //       'public, max-age=3600, s-maxage=3600, stale-while-revalidate',
+    //   },
+    // }
+  );
 }
 
 export async function action({ request }: DataFunctionArgs) {
@@ -56,9 +64,18 @@ export default function Index() {
   return (
     <main className='mx-auto py-20 max-w-7xl sm:px-6 lg:px-8'>
       <div className='px-4 sm:px-6 lg:px-8'>
-        <Form method='POST' action='/logout'>
+        {/* <Form method='POST' action='/logout'>
           <button type='submit'>Logout</button>
-        </Form>
+        </Form> */}
+        <div className='border-red-500'>
+          <SignOutButton />
+        </div>
+        <SignedIn>
+          <h1>Index route</h1>
+          <p>You are signed in!</p>
+          <UserButton />
+        </SignedIn>
+
         <RestaurantHeader />
         <RestaurantTable />
       </div>
